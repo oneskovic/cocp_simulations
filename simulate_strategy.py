@@ -37,17 +37,17 @@ class MiningSimulator:
         self.miner_thresholds_low = miner_thresholds_low
         self.miner_thresholds_high = miner_thresholds_high
         self.iterations = iterations
+        self.packet_creator = packet_creator
 
-        self.packet_creator = packet_creator(self.problem_difficulties, packet_size)
         self.miner_cnt = len(miner_compute_powers)
 
     def get_fee(self, problem_difficulty):
         # Currently fee is proportional to difficulty
         return problem_difficulty
 
-    def get_packets(self):
+    def get_packets(self, remaining_times):
         packets = [
-            self.packet_creator.get_packet(
+            self.packet_creator(remaining_times, self.packet_size).get_packet(
                 self.miner_thresholds_low[miner], self.miner_thresholds_high[miner]
             )
             for miner in range(self.miner_cnt)
