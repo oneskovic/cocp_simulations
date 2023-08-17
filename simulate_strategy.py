@@ -62,7 +62,7 @@ class MiningSimulator:
     def get_mine_times(self, remaining_times, packet_problems):
         return np.array(
             [
-                remaining_times[miner, packet_problems[miner]].sum()
+                remaining_times[miner, packet_problems[miner]].sum() / self.miner_compute_powers[miner]
                 for miner in range(self.miner_cnt)
             ]
         )
