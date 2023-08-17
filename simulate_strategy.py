@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from packet_creation import PacketCreatorSimulated
-
+import time
 
 def get_compute_powers(n):
     return np.random.uniform(1, 5, n)
@@ -47,7 +47,7 @@ class MiningSimulator:
 
     def get_packets(self, remaining_times):
         packets = [
-            self.packet_creator(remaining_times, self.packet_size).get_packet(
+            self.packet_creator(remaining_times[miner], self.packet_size).get_packet(
                 self.miner_thresholds_low[miner], self.miner_thresholds_high[miner]
             )
             for miner in range(self.miner_cnt)
@@ -103,7 +103,7 @@ class MiningSimulator:
         remaining_times = np.array(remaining_times)
 
         for _ in tqdm(range(self.iterations), desc="Iterations"):
-            packet_problems, packet_search_times = self.get_packets()
+            packet_problems, packet_search_times = self.get_packets(remaining_times)
             packet_mine_times = self.get_mine_times(remaining_times, packet_problems)
             miner_total_times = packet_search_times + packet_mine_times
 
