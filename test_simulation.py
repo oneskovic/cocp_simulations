@@ -22,11 +22,25 @@ def problem_difficulties():
 def remaining_times():
     return np.array(
         [
-            [4, 2, 5, 2, 6, 1, 0, 8, 9, 3],
+            [3, 5, 3, 1, 5, 8, 6, 3, 7, 2],
             [3, 8, 3, 6, 5, 6, 3, 9, 8, 6],
             [1, 3, 6, 4, 8, 0, 9, 4, 0, 7],
         ]
     )
+
+@pytest.fixture
+def packet_total_remaining_times(packet_problems, remaining_times):
+    return remaining_times[
+        np.arange(3)[:, None], packet_problems
+    ].sum(axis=1)
+
+@pytest.fixture
+def packet_search_times():
+    return np.array([1, 2, 3])
+
+@pytest.fixture
+def miner_total_times(packet_total_remaining_times, packet_search_times):
+    return packet_total_remaining_times + packet_search_times
 
 @pytest.fixture
 def packet_problems():
@@ -49,16 +63,32 @@ def test_get_packets(mining_simulator, remaining_times):
     packet_problems, packet_search_times = mining_simulator.get_packets(remaining_times)
     assert packet_problems.shape == (mining_simulator.miner_cnt, mining_simulator.packet_size)
     assert packet_search_times.shape == (mining_simulator.miner_cnt,)
-    assert np.all(packet_search_times > 0)
-    # https://stackoverflow.com/questions/20103779/index-2d-numpy-array-by-a-2d-array-of-indices-without-loops
-    packet_difficulty = remaining_times[
-        np.arange(mining_simulator.miner_cnt)[:, None], packet_problems
+    assert np.all(packet_search_times > 0)    
+    packet_total_remaining_times = remaining_times[
+        np.arange(3)[:, None], packet_problems
     ].sum(axis=1)
     assert np.all(
-        (mining_simulator.miner_thresholds_low <= packet_difficulty)
-        & (packet_difficulty <= mining_simulator.miner_thresholds_high)
+        (mining_simulator.miner_thresholds_low <= packet_total_remaining_times)
+        & (packet_total_remaining_times <= mining_simulator.miner_thresholds_high)
     )
 
 def test_get_mine_times(mining_simulator, remaining_times, packet_problems):
     mine_times = mining_simulator.get_mine_times(remaining_times, packet_problems)
-    assert np.all(mine_times == np.array([7, 11, 9]))
+    assert np.all(mine_times == np.array([8, 11, 9]))
+
+def test_find_winner(mining_simulator, miner_total_times, packet_problems):
+    winner, winner_packet, winner_time, reward  = mining_simulator.find_winner(miner_total_times, packet_problems)
+    assert winner == 0
+    assert winner_time == 9
+    assert np.all(winner_packet == packet_problems[winner])
+    assert reward == mining_simulator.problem_difficulties[winner_packet].sum()
+
+def test_new_remaining_times(mining_simulator, packet_problems, packet_search_times, remaining_times):
+    winner_time = 9
+    new_remaining_times = mining_simulator.new_remaining_times(packet_problems, winner_time, packet_search_times, remaining_times)
+    expected = np.array([
+        [3, 0, 0, 1, 5, 8, 6, 3, 7, 2],
+        [3, 8, 3, 0, 4, 6, 3, 9, 8, 6],
+        [1, 3, 6, 4, 8, 0, 3, 4, 0, 7],
+    ])
+    assert np.all(new_remaining_times == expected)
