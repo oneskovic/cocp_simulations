@@ -81,7 +81,7 @@ def test_find_winner(mining_simulator, miner_total_times, packet_problems):
     assert winner == 0
     assert winner_time == 9
     assert np.all(winner_packet == packet_problems[winner])
-    assert reward == mining_simulator.problem_difficulties[winner_packet].sum()
+    assert reward == sum(mining_simulator.get_fee(p) for p in mining_simulator.problem_difficulties[winner_packet])
 
 def test_new_remaining_times(mining_simulator, packet_problems, packet_search_times, remaining_times):
     winner_time = 9

@@ -1,8 +1,32 @@
 # Setup
-Install the required packages:
+Clone the repo and install the required packages:
 ```
+git clone https://github.com/oneskovic/cocp_simulations.git
+cd cocp_simulations
 pip install -r requirements.txt
 ```
+## Usage example
+```py
+import numpy as np
+import matplotlib.pyplot as plt
+from simulate_strategy import MiningSimulator
+
+miner_cnt = 5
+simulator = MiningSimulator(
+    problem_cnt=100,
+    packet_size=5,
+    miner_compute_powers=np.full(miner_cnt, 10.0),
+    miner_thresholds_low=np.full(miner_cnt, 0.0),
+    miner_thresholds_high=np.full(miner_cnt, 2.0),
+    iterations=50
+)
+search_times, mine_times, rewards = simulator.run_simulation()
+plt.bar(range(miner_cnt), rewards)
+plt.xlabel('Miners')
+plt.ylabel('Rewards')
+plt.show()
+```
+![example_graph.png](example_graph.png)
 # Description of simulator
 The simulator is a simple environment that simulates strategies of miners on the network as proposed in the proof of useful work paper. 
 ## Assumptions
@@ -27,8 +51,8 @@ The parameters of the main `MiningSimulator` class are:
 - `packet_creator`: Packet creator class (check `PacketCreatorSimulated` in `packet_creation.py` for the interface). Defaults to `PacketCreatorSimulated`.
 - `difficulty_generator`: The function that generates the difficulties of the problems in the instance pool. Defaults to `get_difficulties_pareto`.
 ### Initialization
-- Run difficulty generator and store in `self.problem_difficulties` these are the difficulties of problems currently in the "instance pool".
-- Compute remaining times (how much time each miner will need for each problem) this is a numpy array of shape (number of miners, number of problems). Store in `remaining_times`.
+- Run difficulty generator and store in `self.problem_difficulties`. These are the difficulties of problems currently in the "instance pool".
+- Compute remaining times (how much time each miner will need for each problem). This is a numpy array of shape (number of miners, number of problems). Store in `remaining_times`.
 
 ### Simulation loop
 The simulator performs the following steps the given number of times:
