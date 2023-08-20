@@ -20,7 +20,7 @@ def get_difficulties_uniform(n=100):
 def get_difficulties_uniform_2(n=100):
     low = 0.01
     high = 3.0
-    step = 0.01
+    step = 0.001
     possible_difficulties = np.arange(low,high,step)
     return np.random.choice(possible_difficulties, n)
 
@@ -32,8 +32,8 @@ def get_compute_powers_one_large(large=0.05, others=0.01):
 ITERATIONS = 10000
 PROBLEM_CNT = 1000
 
-difficulties = get_difficulties_uniform_2(PROBLEM_CNT)
-compute_power = get_compute_powers_one_large(0.05,0.01)
+difficulties = get_difficulties_pareto(PROBLEM_CNT)
+compute_power = get_compute_powers_one_large(0.1,0.005)
 cnt_wins = np.zeros_like(compute_power)
 n = len(compute_power)
 block_times = []

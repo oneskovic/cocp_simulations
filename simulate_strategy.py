@@ -11,7 +11,10 @@ def get_compute_powers(n):
 
 
 def get_difficulties_pareto(n : int, current_difficulties : Union[np.ndarray, None] = None, mined_problems : Union[np.ndarray, None] = None):
-    return np.random.pareto(2, n)
+    if current_difficulties is None or mined_problems is None:
+        return np.random.pareto(2, n)
+    else:
+        return current_difficulties[mined_problems]
 
 
 def get_difficulties_uniform(n : int, current_difficulties : Union[np.ndarray, None] = None, mined_problems : Union[np.ndarray, None] = None):
@@ -97,6 +100,7 @@ class MiningSimulator:
         winner = np.random.choice(winners)
         winner_packet = packet_problems[winner]
         reward = self.get_fee(self.problem_difficulties[winner_packet]).sum()
+        
         return winner, winner_packet, winner_time, reward
 
     def new_remaining_times(
@@ -131,7 +135,7 @@ class MiningSimulator:
             packet_problems, packet_search_times = self.get_packets(remaining_times)
             packet_mine_times = self.get_mine_times(remaining_times, packet_problems)
             miner_total_times = packet_search_times + packet_mine_times
-            
+
             winner, winner_packet, winner_time, winner_reward = self.find_winner(
                 miner_total_times, packet_problems
             )
