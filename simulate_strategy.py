@@ -106,7 +106,7 @@ class MiningSimulator:
             packet_problems, packet_search_times = self.get_packets(remaining_times)
             packet_mine_times = self.get_mine_times(remaining_times, packet_problems)
             miner_total_times = packet_search_times + packet_mine_times
-
+            
             winner, winner_packet, winner_time, winner_reward = self.find_winner(
                 miner_total_times, packet_problems
             )
@@ -141,7 +141,6 @@ if __name__ == "__main__":
     MINER_CNT = 20
     ITERATIONS = 1000
     PACKET_SIZE = 10
-    difficulties = get_difficulties_pareto(PROBLEM_CNT)
     compute_powers = get_compute_powers(MINER_CNT)
     thresholds_low, thresholds_high = get_tresholds(MINER_CNT)
     search_times, mine_times, rewards = MiningSimulator(
