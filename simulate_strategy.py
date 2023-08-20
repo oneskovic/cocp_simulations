@@ -3,13 +3,33 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from packet_creation import PacketCreatorSimulated
 import time
+import numpy.typing as npt
+from typing import Union, Callable
 
 def get_compute_powers(n):
     return np.random.uniform(1, 5, n)
 
 
-def get_difficulties_pareto(n):
+def get_difficulties_pareto(n : int, current_difficulties : Union[np.ndarray, None] = None, mined_problems : Union[np.ndarray, None] = None):
     return np.random.pareto(2, n)
+
+
+def get_difficulties_uniform(n : int, current_difficulties : Union[np.ndarray, None] = None, mined_problems : Union[np.ndarray, None] = None):
+    low = 0.01
+    high = 3.0
+    step = 0.01
+    possible_difficulties = np.arange(low,high,step)
+    if current_difficulties is None or mined_problems is None:
+        return np.random.choice(possible_difficulties, n)
+    else:
+        # perfect_counts = np.full(len(possible_difficulties), len(current_difficulties) / len(possible_difficulties))
+        # current_counts = np.histogram(current_difficulties, bins=np.append(possible_difficulties,high))[0]
+        # diff = perfect_counts - current_counts
+        # diff = diff.clip(0)
+        # normalized_diff = diff / diff.sum()
+        # return np.random.choice(possible_difficulties, n, p=normalized_diff)
+        # Temp just return same difficulties
+        return current_difficulties[mined_problems]
 
 
 def get_tresholds(n):
@@ -21,14 +41,15 @@ def get_tresholds(n):
 class MiningSimulator:
     def __init__(
         self,
-        problem_cnt,
-        packet_size,
-        miner_compute_powers,
-        miner_thresholds_low,
-        miner_thresholds_high,
-        iterations,
-        packet_creator=PacketCreatorSimulated,
-        difficulty_generator=get_difficulties_pareto,
+        problem_cnt : int,
+        packet_size : int,
+        miner_compute_powers : np.ndarray,
+        miner_thresholds_low : np.ndarray,
+        miner_thresholds_high : np.ndarray,
+        iterations : int,
+        packet_creator = PacketCreatorSimulated,
+        difficulty_generator : Callable[[int, Union[np.ndarray, None], Union[np.ndarray, None]], np.ndarray] \
+            = get_difficulties_uniform,
     ):
         self.difficulty_generator = difficulty_generator
         self.problem_difficulties = difficulty_generator(problem_cnt)
@@ -43,7 +64,10 @@ class MiningSimulator:
 
     def get_fee(self, problem_difficulty):
         # Currently fee is proportional to difficulty
-        return problem_difficulty
+        return 5.0 + problem_difficulty
+    
+    def get_packet_search_times(self, packet_search_attempts : npt.NDArray[np.float64]):
+        return packet_search_attempts / self.miner_compute_powers * 1e-5
 
     def get_packets(self, remaining_times):
         packets = [
@@ -56,7 +80,7 @@ class MiningSimulator:
         packet_problems = np.array(packet_problems)
 
         packet_search_times = np.array(packet_search_times, np.float64)
-        packet_search_times /= self.miner_compute_powers
+        packet_search_times = self.get_packet_search_times(packet_search_times)
         return packet_problems, packet_search_times
 
     def get_mine_times(self, remaining_times, packet_problems):
@@ -68,8 +92,9 @@ class MiningSimulator:
         )
 
     def find_winner(self, miner_total_times, packet_problems):
-        winner = np.argmin(miner_total_times)
-        winner_time = miner_total_times[winner]
+        winner_time = miner_total_times.min()
+        winners = np.argwhere(miner_total_times == winner_time).flatten()
+        winner = np.random.choice(winners)
         winner_packet = packet_problems[winner]
         reward = self.get_fee(self.problem_difficulties[winner_packet]).sum()
         return winner, winner_packet, winner_time, reward
@@ -114,9 +139,8 @@ class MiningSimulator:
 
             # Reset difficulties for mined problems
             self.problem_difficulties[winner_packet] = self.difficulty_generator(
-                self.packet_size
+                self.packet_size, self.problem_difficulties, winner_packet
             )
-
             # Update remaining times for all miners
             remaining_times = self.new_remaining_times(
                 packet_problems, winner_time, packet_search_times, remaining_times
@@ -134,22 +158,3 @@ class MiningSimulator:
         search_times = np.array(block_miner_packet_mine_times)
         mine_times = np.array(block_miner_packet_search_times)
         return search_times, mine_times, rewards
-
-
-if __name__ == "__main__":
-    PROBLEM_CNT = 200
-    MINER_CNT = 20
-    ITERATIONS = 1000
-    PACKET_SIZE = 10
-    compute_powers = get_compute_powers(MINER_CNT)
-    thresholds_low, thresholds_high = get_tresholds(MINER_CNT)
-    search_times, mine_times, rewards = MiningSimulator(
-        PROBLEM_CNT,
-        PACKET_SIZE,
-        compute_powers,
-        thresholds_low,
-        thresholds_high,
-        ITERATIONS,
-    ).run_simulation()
-    plt.bar(np.arange(MINER_CNT), rewards)
-    plt.show()

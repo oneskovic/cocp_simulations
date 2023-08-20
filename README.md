@@ -14,7 +14,7 @@ The simulator is based on the following assumptions:
     - Once someone finds a new block, stop mining, do not change tresholds, find a new package and repeat this process.
 2. Each miner has perfect knowledge of the problem difficulties (essentially difficulty estimation is perfect)
 3. Problem fee is a function of the difficulty and difficulty only
-4. Each miner finds packets with rate equal to the miner's compute power (e.g if a miner has computer power equal to 5 then the miner finds 5 packets per second)
+4. Each miner finds packets with rate proportional to the miner's compute power
 ## Simulation
 ### Parameters
 The parameters of the main `MiningSimulator` class are:

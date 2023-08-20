@@ -17,6 +17,13 @@ def get_difficulties_pareto(n=100):
 def get_difficulties_uniform(n=100):
     return np.random.uniform(0.0, 3.0, n)
 
+def get_difficulties_uniform_2(n=100):
+    low = 0.01
+    high = 3.0
+    step = 0.01
+    possible_difficulties = np.arange(low,high,step)
+    return np.random.choice(possible_difficulties, n)
+
 # Generate a sample where one node has large compute power others have equal
 def get_compute_powers_one_large(large=0.05, others=0.01):
     n_ohters = (1-large) / others
@@ -25,7 +32,7 @@ def get_compute_powers_one_large(large=0.05, others=0.01):
 ITERATIONS = 10000
 PROBLEM_CNT = 1000
 
-difficulties = get_difficulties_uniform(PROBLEM_CNT)
+difficulties = get_difficulties_uniform_2(PROBLEM_CNT)
 compute_power = get_compute_powers_one_large(0.05,0.01)
 cnt_wins = np.zeros_like(compute_power)
 n = len(compute_power)
