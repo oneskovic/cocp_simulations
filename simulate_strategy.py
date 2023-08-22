@@ -5,18 +5,30 @@ from packet_creation import PacketCreatorSimulated
 import time
 import numpy.typing as npt
 from typing import Union, Callable
+from multiprocessing import Pool
+
 
 def get_compute_powers(n):
     return np.random.uniform(1, 5, n)
 
-def get_difficulties_pareto(n : int, current_difficulties : Union[np.ndarray, None] = None, mined_problems : Union[np.ndarray, None] = None):
+
+def get_difficulties_pareto(
+    n: int,
+    current_difficulties: Union[np.ndarray, None] = None,
+    mined_problems: Union[np.ndarray, None] = None,
+):
     return np.random.pareto(2, n)
 
-def get_difficulties_uniform(n : int, current_difficulties : Union[np.ndarray, None] = None, mined_problems : Union[np.ndarray, None] = None):
+
+def get_difficulties_uniform(
+    n: int,
+    current_difficulties: Union[np.ndarray, None] = None,
+    mined_problems: Union[np.ndarray, None] = None,
+):
     low = 0.01
     high = 3.0
     step = 0.01
-    possible_difficulties = np.arange(low,high,step)
+    possible_difficulties = np.arange(low, high, step)
     if current_difficulties is None or mined_problems is None:
         return np.random.choice(possible_difficulties, n)
     else:
@@ -39,15 +51,17 @@ def get_tresholds(n):
 class MiningSimulator:
     def __init__(
         self,
-        problem_cnt : int,
-        packet_size : int,
-        miner_compute_powers : np.ndarray,
-        miner_thresholds_low : np.ndarray,
-        miner_thresholds_high : np.ndarray,
-        iterations : int,
-        packet_creator = PacketCreatorSimulated(),
-        difficulty_generator : Callable[[int, Union[np.ndarray, None], Union[np.ndarray, None]], np.ndarray] \
-            = get_difficulties_uniform,
+        problem_cnt: int,
+        packet_size: int,
+        miner_compute_powers: np.ndarray,
+        miner_thresholds_low: np.ndarray,
+        miner_thresholds_high: np.ndarray,
+        iterations: int,
+        packet_creator=PacketCreatorSimulated(),
+        thread_cnt=8,
+        difficulty_generator: Callable[
+            [int, Union[np.ndarray, None], Union[np.ndarray, None]], np.ndarray
+        ] = get_difficulties_uniform,
     ):
         self.difficulty_generator = difficulty_generator
         self.problem_difficulties = difficulty_generator(problem_cnt)
@@ -57,23 +71,56 @@ class MiningSimulator:
         self.miner_thresholds_high = miner_thresholds_high
         self.iterations = iterations
         self.packet_creator = packet_creator
+        self.thread_cnt = thread_cnt
 
         self.miner_cnt = len(miner_compute_powers)
 
     def get_fee(self, problem_difficulty):
         # Currently fee is proportional to difficulty
         return 5.0 + problem_difficulty
-    
-    def get_packet_search_times(self, packet_search_attempts : npt.NDArray[np.float64]):
+
+    def get_packet_search_times(self, packet_search_attempts: npt.NDArray[np.float64]):
         return packet_search_attempts / self.miner_compute_powers * 1e-5
 
     def get_packets(self, remaining_times):
-        packets = [
-            self.packet_creator.get_packet(remaining_times[miner], self.packet_size,
-                self.miner_thresholds_low[miner], self.miner_thresholds_high[miner]
+        get_packet_args = [
+            (
+                remaining_times[miner],
+                self.packet_size,
+                self.miner_thresholds_low[miner],
+                self.miner_thresholds_high[miner],
             )
             for miner in range(self.miner_cnt)
         ]
+
+        # Split args into chunks
+        chunk_size = self.miner_cnt // self.thread_cnt
+        starmap_args = [
+            get_packet_args[i * chunk_size : (i + 1) * chunk_size]
+            for i in range(self.thread_cnt)
+        ]
+        # Check if everything fits in chunks
+        total_in_chunks = sum(len(chunk) for chunk in starmap_args)
+        # If not add to last chunk
+        if total_in_chunks < self.miner_cnt:
+            starmap_args[-1] += get_packet_args[total_in_chunks:]      
+
+        with Pool(self.thread_cnt) as p:
+            packets_chunked = p.map(self.packet_creator.get_packet_chunked, starmap_args)
+        packets = []
+        for chunk in packets_chunked:
+            packets += chunk
+
+        # packets = [
+        #     self.packet_creator.get_packet(
+        #         remaining_times[miner],
+        #         self.packet_size,
+        #         self.miner_thresholds_low[miner],
+        #         self.miner_thresholds_high[miner],
+        #     )
+        #     for miner in range(self.miner_cnt)
+        # ]
+
         packet_problems, packet_search_times = zip(*packets)
         packet_problems = np.array(packet_problems)
 
@@ -95,7 +142,7 @@ class MiningSimulator:
         winner = np.random.choice(winners)
         winner_packet = packet_problems[winner]
         reward = self.get_fee(self.problem_difficulties[winner_packet]).sum()
-        
+
         return winner, winner_packet, winner_time, reward
 
     def new_remaining_times(

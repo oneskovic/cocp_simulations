@@ -85,6 +85,12 @@ class PacketCreatorSimulated:
     def __init__(self, packet_search_callback : Callable = None):
         self.packet_search_callback = packet_search_callback
 
+    def get_packet_chunked(self, chunk):
+        packets = []
+        for args in chunk:
+            packets.append(self.get_packet(*args))
+        return packets
+
     def get_packet(self, problems : np.ndarray, packet_size : int, low : float, high : float):
         found_packet = None
         tries = 0
