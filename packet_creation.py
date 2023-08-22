@@ -1,6 +1,8 @@
 import numpy as np
 from tqdm import tqdm
 from scipy.special import binom
+import numpy.typing as npt
+from typing import Union, Callable
 
 
 def get_rand_packet(problems, packet_size):
@@ -80,18 +82,19 @@ class PacketCreatorFast:
 
 
 class PacketCreatorSimulated:
-    def __init__(self, problems, packet_size):
-        self.problems = problems
-        self.packet_size = packet_size
+    def __init__(self, packet_search_callback : Callable = None):
+        self.packet_search_callback = packet_search_callback
 
-    def get_packet(self, low, high):
+    def get_packet(self, problems : np.ndarray, packet_size : int, low : float, high : float):
         found_packet = None
         tries = 0
         while found_packet is None:
             tries += 1
-            packet = get_rand_packet(self.problems, self.packet_size)
-            if is_valid_packet(self.problems, packet, low, high):
+            packet = get_rand_packet(problems, packet_size)
+            if is_valid_packet(problems, packet, low, high):
                 found_packet = packet
+            if self.packet_search_callback is not None:
+                self.packet_search_callback(tries)
         return found_packet, tries
 
 

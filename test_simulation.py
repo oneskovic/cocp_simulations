@@ -15,6 +15,10 @@ def mining_simulator():
     return MiningSimulator(problem_cnt, packet_size, miner_compute_powers, miner_thresholds_low, miner_thresholds_high, iterations)
 
 @pytest.fixture
+def packet_size():
+    return 2
+
+@pytest.fixture
 def problem_difficulties():
     return np.array([4, 2, 5, 2, 6, 1, 0, 8, 9, 3])
 
@@ -47,16 +51,15 @@ def packet_problems():
     return np.array([[1, 2], [3, 4], [5, 6]])
 
 @pytest.fixture
-def packet_creator_simulated(problem_difficulties):
-    packet_size = 2
-    return PacketCreatorSimulated(problem_difficulties, packet_size)
+def packet_creator_simulated():
+    return PacketCreatorSimulated()
 
-def test_packet_creator_simulated(packet_creator_simulated):
+def test_packet_creator_simulated(packet_creator_simulated, problem_difficulties, packet_size):
     threshold_low = 0.0
     threshold_high = 3.0
-    packet, tries = packet_creator_simulated.get_packet(threshold_low, threshold_high)
+    packet, tries = packet_creator_simulated.get_packet(problem_difficulties, packet_size, threshold_low, threshold_high)
     assert tries > 0
-    assert threshold_low <= packet_creator_simulated.problems[packet].sum() <= threshold_high
+    assert threshold_low <= problem_difficulties[packet].sum() <= threshold_high
 
 
 def test_get_packets(mining_simulator, remaining_times):

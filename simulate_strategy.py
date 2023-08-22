@@ -9,13 +9,8 @@ from typing import Union, Callable
 def get_compute_powers(n):
     return np.random.uniform(1, 5, n)
 
-
 def get_difficulties_pareto(n : int, current_difficulties : Union[np.ndarray, None] = None, mined_problems : Union[np.ndarray, None] = None):
-    if current_difficulties is None or mined_problems is None:
-        return np.random.pareto(2, n)
-    else:
-        return current_difficulties[mined_problems]
-
+    return np.random.pareto(2, n)
 
 def get_difficulties_uniform(n : int, current_difficulties : Union[np.ndarray, None] = None, mined_problems : Union[np.ndarray, None] = None):
     low = 0.01
@@ -50,7 +45,7 @@ class MiningSimulator:
         miner_thresholds_low : np.ndarray,
         miner_thresholds_high : np.ndarray,
         iterations : int,
-        packet_creator = PacketCreatorSimulated,
+        packet_creator = PacketCreatorSimulated(),
         difficulty_generator : Callable[[int, Union[np.ndarray, None], Union[np.ndarray, None]], np.ndarray] \
             = get_difficulties_uniform,
     ):
@@ -74,7 +69,7 @@ class MiningSimulator:
 
     def get_packets(self, remaining_times):
         packets = [
-            self.packet_creator(remaining_times[miner], self.packet_size).get_packet(
+            self.packet_creator.get_packet(remaining_times[miner], self.packet_size,
                 self.miner_thresholds_low[miner], self.miner_thresholds_high[miner]
             )
             for miner in range(self.miner_cnt)
